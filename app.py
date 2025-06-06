@@ -4,12 +4,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 # Importa ferramentas de segurança para hashing de senhas
 from werkzeug.security import generate_password_hash, check_password_hash
+import os # Importa o módulo os para acessar variáveis de ambiente
 
 # Cria uma instância do aplicativo Flask
 app = Flask(__name__)
 # Habilita o CORS para todas as rotas.
-# Isso é importante para que o navegador permita que seu arquivo HTML (executado localmente)
-# se comunique com o servidor Flask. Em produção, você restringiria isso a domínios específicos.
+# Em produção, é RECOMENDADO restringir isso a domínios específicos.
+# Por exemplo, CORS(app, resources={r"/*": {"origins": "https://seu-frontend.onrender.com"}})
 CORS(app)
 
 # Dicionário simples para armazenar usuários.
@@ -66,14 +67,25 @@ def login():
     else:
         return jsonify({"message": "Nome de usuário ou senha inválidos"}), 401 # 401 Unauthorized
 
-# NOVA ROTA: Rota para verificar o status do servidor (método GET)
+# Rota para verificar o status do servidor (método GET)
 @app.route('/status', methods=['GET'])
 def status():
     # Retorna uma mensagem simples para indicar que o servidor está online
     return jsonify({"message": "Servidor online"}), 200 # 200 OK
 
+# Rota para obter a lista de todos os usuários cadastrados (método GET)
+@app.route('/users', methods=['GET'])
+def get_users():
+    # Retorna uma lista dos nomes de usuário (as chaves do dicionário users_db)
+    # ATENÇÃO: Em um sistema real, essa rota PRECISA ser protegida por autenticação e autorização
+    # para evitar que qualquer um acesse a lista de usuários.
+    return jsonify(list(users_db.keys())), 200 # 200 OK
+
 # Ponto de entrada para executar o aplicativo Flask
 if __name__ == '__main__':
-    # Roda o aplicativo no modo de depuração, o que é útil para desenvolvimento.
-    # Em produção, você usaria um servidor WSGI como Gunicorn ou uWSGI.
-    app.run(debug=True)
+    # Obtém a porta do ambiente (fornecida pelo Render) ou usa 5000 para desenvolvimento local.
+    port = int(os.environ.get("PORT", 5000))
+    # Em produção, o Gunicorn ou outro servidor WSGI cuidará de expor a aplicação.
+    # Para desenvolvimento local, ele rodará em 127.0.0.1:5000 por padrão.
+    # No Render, ele será acessível externamente na porta fornecida pelo ambiente.
+    app.run(host='0.0.0.0', port=port, debug=True)
